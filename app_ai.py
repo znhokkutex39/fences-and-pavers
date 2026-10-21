@@ -126,14 +126,13 @@ st.sidebar.title("⚜️ Navigation")
 menu = st.sidebar.radio(
     "",
     [
-        "🖼️ Projects Gallery", 
-        "📜 About & Pricing", 
+        "📜 About & Pricing",     # 👉 Đã được đưa lên dòng số 1 (Mặc định hiển thị)
+        "🖼️ Projects Gallery",    # 👉 Đẩy xuống dòng số 2
         "✉️ Free Estimate & AI"
     ]
 )
 st.sidebar.markdown("---")
 st.sidebar.write("📞 **(123) 456-7890**\n\n📫 **info@premieroutdoor.com**\n\n📍 **Seattle, WA**")
-
 # ==========================================
 # TRANG 1: THƯ VIỆN HÌNH ẢNH
 # ==========================================
