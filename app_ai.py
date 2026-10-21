@@ -1,191 +1,240 @@
-import streamlit as st
 import os
+import streamlit as st
 import requests
-from google import genai
-from google.genai import types
-from google.genai import errors
 
-# ================= 1. CÀI ĐẶT TRANG =================
-st.set_page_config(page_title="Premier Landscaping & Fencing", page_icon="🌿", layout="wide")
+# 1. CẤU HÌNH TRANG VÀ CSS CAO CẤP
+st.set_page_config(page_title="Premier Fencing & Pavers", page_icon="🌿", layout="wide")
 
-# ================= HÀM HỖ TRỢ CHUNG =================
+custom_theme = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
 
-def gui_thong_tin_ve_sheets(name, email, phone, note=""):
-    APPS_SCRIPT_WEBHOOK = st.secrets["SHEETS_WEBHOOK"]
+/* 1. NỀN TỔNG THỂ: Gradient giao thoa giữa Đá Xám lạnh (Slate) và Gỗ Nâu ấm (Walnut) */
+.stApp { 
+    background: linear-gradient(135deg, #29323C 0%, #4E342E 100%) !important; 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+}
+
+/* 2. KHUNG CANVAS TRUNG TÂM: Bề mặt vân đá xám đen, bọc viền gỗ */
+[data-testid="block-container"] {
+    background: linear-gradient(145deg, #2D3134 0%, #1F2224 100%) !important;
+    border-radius: 16px;
+    padding: 40px 50px !important;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0, 0.6) !important;
+    border: 2px solid #5D4037 !important; /* Viền màu Nâu Gỗ */
+}
+
+/* 3. ÉP BUỘC 100% CHỮ NỘI DUNG THÀNH MÀU TRẮNG - Khắc phục triệt để lỗi tàng hình */
+.stMarkdown p, .stMarkdown span, .stMarkdown li, .stMarkdown div, 
+[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] span,
+[data-testid="stMarkdownContainer"] {
+    color: #FFFFFF !important;
+    font-weight: 300 !important;
+    line-height: 1.7 !important;
+    font-size: 1.05rem !important;
+}
+
+/* 4. TIÊU ĐỀ: Màu Gỗ Sồi Sáng (Light Oak) để bắt sáng trên nền đá đen */
+h1, h2, h3, h1 *, h2 *, h3 * { 
+    font-family: 'Playfair Display', serif !important; 
+    color: #E6C287 !important; 
+    letter-spacing: 0.5px !important;
+}
+
+/* Sidebar: Màu gỗ tối nguyên bản */
+[data-testid="stSidebar"] { 
+    background: #2C1E16 !important; 
+    border-right: 1px solid #4A3525 !important;
+}
+[data-testid="stSidebar"] * { color: #E8EDE9 !important; }
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #E6C287 !important; }
+
+/* Khung ảnh: Viền nâu gỗ mỏng, bo viền sáng khi di chuột vào */
+img { 
+    border-radius: 10px !important; 
+    border: 2px solid #5D4037 !important; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important; 
+    transition: all 0.4s ease !important; 
+}
+img:hover { 
+    transform: translateY(-5px) scale(1.02); 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.7) !important; 
+    border-color: #E6C287 !important;
+}
+
+/* Nút bấm (Button): Gradient màu Gỗ Sồi, chữ trắng */
+div.stButton > button {
+    background: linear-gradient(90deg, #8B5A2B 0%, #5C4033 100%) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0.6rem 2rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    box-shadow: 0 4px 15px rgba(139, 90, 43, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+div.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 90, 43, 0.5) !important;
+}
+
+/* Bảng giá: Nền kính mờ viền gỗ */
+table { 
+    background: rgba(255,255,255,0.03) !important; 
+    border-radius: 10px; 
+    border: 1px solid #5D4037 !important; 
+    width: 100%; 
+}
+th { 
+    background: rgba(139, 90, 43, 0.2) !important; 
+    color: #E6C287 !important; 
+    font-family: 'Playfair Display', serif !important; 
+    font-size: 1.1rem; 
+    border-bottom: 1px solid #5D4037 !important;
+}
+td { 
+    color: #FFFFFF !important; 
+    border-bottom: 1px solid #3E2723 !important;
+}
+
+/* Hộp thông tin 4 bước (Quy trình) */
+div[data-testid="stAlert"] {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid #5D4037 !important;
+}
+div[data-testid="stAlert"] div[data-testid="stMarkdownContainer"] p {
+    color: #FFFFFF !important;
+}
+</style>
+"""
+st.markdown(custom_theme, unsafe_allow_html=True)
+
+
+# ĐỊNH VỊ ĐƯỜNG DẪN ẢNH
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FENCES_DIR = os.path.join(BASE_DIR, "kho_anh", "fences")
+PAVERS_DIR = os.path.join(BASE_DIR, "kho_anh", "pavers")
+
+# ==========================================
+# 2. THANH MENU BÊN TRÁI
+# ==========================================
+st.sidebar.title("⚜️ Navigation")
+menu = st.sidebar.radio(
+    "",
+    [
+        "🖼️ Projects Gallery", 
+        "📜 About & Pricing", 
+        "✉️ Free Estimate & AI"
+    ]
+)
+st.sidebar.markdown("---")
+st.sidebar.write("📞 **(123) 456-7890**\n\n📫 **info@premieroutdoor.com**\n\n📍 **Seattle, WA**")
+
+# ==========================================
+# TRANG 1: THƯ VIỆN HÌNH ẢNH
+# ==========================================
+if menu == "🖼️ Projects Gallery":
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c2:
+        if os.path.exists(os.path.join(BASE_DIR, "logo.png")):
+            st.image(os.path.join(BASE_DIR, "logo.png"), width=240)
+
+    st.title("Transforming Backyards with Precision 🌿")
+    st.write("✨ *Browse through our premium fencing and hardscaping projects.*")
+
+    tab_fences, tab_pavers = st.tabs(["🪵 Premium Fences", "🧱 Luxury Pavers"])
+
+    with tab_fences:
+        if os.path.exists(FENCES_DIR) and len(os.listdir(FENCES_DIR)) > 0:
+            fence_images = [f for f in os.listdir(FENCES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+            cols = st.columns(2)
+            for idx, img_name in enumerate(fence_images):
+                with cols[idx % 2]:
+                    st.image(os.path.join(FENCES_DIR, img_name), use_container_width=True)
+
+    with tab_pavers:
+        if os.path.exists(PAVERS_DIR) and len(os.listdir(PAVERS_DIR)) > 0:
+            paver_images = [f for f in os.listdir(PAVERS_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+            cols = st.columns(2)
+            for idx, img_name in enumerate(paver_images):
+                with cols[idx % 2]:
+                    st.image(os.path.join(PAVERS_DIR, img_name), use_container_width=True)
+
+# ==========================================
+# TRANG 2: GIỚI THIỆU & BẢNG GIÁ
+# ==========================================
+elif menu == "📜 About & Pricing":
+    bg_img = os.path.join(BASE_DIR, "bg_about.jpg")
+    if os.path.exists(bg_img):
+        st.image(bg_img, use_container_width=True)
+
+    st.title("More Than Just Contractors 🏛️")
+    st.markdown("""
+    🏡 **A structurally sound fence** doesn't just mark a boundary; it frames your family's memories and keeps your loved ones safe.  
+    ☕ **A perfectly leveled paver patio** isn't just concrete; it's the foundation for your weekend barbecues and slow mornings.
+
+    We are locally owned and operated, which means we treat every property as if it were our neighbor's. When you hire us, you aren't just getting a construction crew. You get:
+    * 💎 **Uncompromising Quality**
+    * 📐 **Master Craftsmanship** 
+    * 🤝 **Radical Transparency**
+    """)
+
+    st.divider()
+
+    st.header("⚙️ Our 4-Step Process")
+    b1, b2, b3, b4 = st.columns(4)
+    b1.success("📍 **01. Site Evaluation**\n\nPrecise on-site survey & layout consultation.")
+    b2.info("📑 **02. Firm Estimate**\n\nClear material & labor pricing with no hidden fees.")
+    b3.warning("🏗️ **03. Installation**\n\nBuilt to code using structural-grade materials.")
+    b4.error("🏆 **04. Final Walkthrough**\n\nQuality check and warranty handover.")
+
+    st.divider()
+
+    st.header("💼 2026 Average Market Estimates")
+    st.markdown("*Reference guide only. Custom site factors, terrain, and soil grading determine final proposals.*")
     
-    du_lieu = {
-        "name": name,
-        "email": email,
-        "phone": phone,
-        "note": note
-    }
-    
-    try:
-        # Bổ sung lệnh allow_redirects=True để chạy theo cơ chế bảo mật của Google
-        response = requests.post(APPS_SCRIPT_WEBHOOK, json=du_lieu, allow_redirects=True)
-        
-        if response.status_code == 200:
-            return True
-        else:
-            # IN THẲNG MÃ LỖI VÀ LÝ DO RA MÀN HÌNH WEB
-            st.error(f"⚠️ Google từ chối nhận! Mã lỗi: {response.status_code}")
-            st.info(f"Chi tiết từ Google: {response.text}")
-            return False
-    except Exception as e:
-        st.error(f"⚠️ Lỗi mạng (Cấu hình st.secrets sai): {e}")
-        return False
+    pricing_table = """
+    | Project Type | Est. Cost | Duration | Warranty |
+    | :--- | :--- | :--- | :--- |
+    | 🪵 **Wood Privacy Fence** | $15 – $45 / ft. | 2 – 4 Days | 1 Year |
+    | 🛡️ **Premium Vinyl Fence** | $20 – $50 / ft. | 2 – 3 Days | 5 Years |
+    | 🧱 **Concrete Pavers** | $10 – $25 / sq.ft. | 3 – 6 Days | 3 Years |
+    """
+    st.markdown(pricing_table)
 
-# 2. HÀM GỬI SLACK
-def gui_thong_bao_slack(name, email, phone, note=""):
-    try:
-        SLACK_WEBHOOK_URL = st.secrets["SLACK_WEBHOOK"]
-        tin_nhan = f"🚨 *CÓ KHÁCH HÀNG MỚI!* 🚨\n👤 *Tên:* {name}\n📧 *Email:* {email}\n📞 *Phone:* {phone}\n📝 *Ghi chú:* {note}"
-        
-        response = requests.post(SLACK_WEBHOOK_URL, json={"text": tin_nhan})
-        
-        # Ép hệ thống in ra lỗi nếu Slack từ chối
-        if response.status_code != 200:
-            st.error(f"⚠️ Lỗi Slack từ chối nhận: {response.status_code} - {response.text}")
-            
-    except Exception as e:
-        st.error(f"⚠️ Lỗi cấu hình Slack: {e}")
-def hien_thi_anh_tu_thu_muc(ten_thu_muc):
-    if not os.path.exists(ten_thu_muc):
-        st.warning(f"⚠️ Chưa tìm thấy thư mục: {ten_thu_muc}")
-        return
+# ==========================================
+# TRANG 3: FORM LIÊN HỆ & CHATBOT
+# ==========================================
+elif menu == "✉️ Free Estimate & AI":
+    st.title("Ready for a Free On-Site Estimate? 🤝")
+    st.write("Fill out the form below or chat with our Virtual Assistant for instant answers.")
 
-    danh_sach_file = os.listdir(ten_thu_muc)
-    danh_sach_anh = [f for f in danh_sach_file if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-    
-    if len(danh_sach_anh) == 0:
-        st.info("Chưa có hình ảnh nào trong thư mục này.")
-        return
+    col1, col2 = st.columns([1, 1])
 
-    cot1, cot2, cot3 = st.columns(3)
-    for chi_muc, ten_file in enumerate(danh_sach_anh):
-        duong_dan_anh = os.path.join(ten_thu_muc, ten_file)
-        
-        chu_thich = ten_file.replace(".jpg", "").replace(".jpeg", "").replace(".png", "").replace("_", " ").capitalize()
-        ma_so_anh = ten_file.split('.')[0].upper()
-        chu_thich_hoan_chinh = f"✨ {chu_thich} | ID: {ma_so_anh}"
-        
-        if chi_muc % 3 == 0:
-            with cot1: st.image(duong_dan_anh, caption=chu_thich_hoan_chinh, use_container_width=True)
-        elif chi_muc % 3 == 1:
-            with cot2: st.image(duong_dan_anh, caption=chu_thich_hoan_chinh, use_container_width=True)
-        else:
-            with cot3: st.image(duong_dan_anh, caption=chu_thich_hoan_chinh, use_container_width=True)
+    with col1:
+        st.header("📝 Request a Quote")
+        with st.form("contact_form", clear_on_submit=True):
+            name = st.text_input("👤 Full Name *", placeholder="John Doe")
+            phone = st.text_input("📞 Phone Number *", placeholder="(123) 456-7890")
+            project_type = st.selectbox("🏗️ Project Interest", ["Wood Fencing", "Vinyl Fencing", "Pavers", "Other"])
+            message = st.text_area("💬 Project Details", placeholder="Tell us about your yard...")
+            submitted = st.form_submit_button("Submit Request 🚀")
 
-# ================= 2. THANH MENU BÊN TRÁI (SIDEBAR) =================
-with st.sidebar:
-    st.markdown("## 📞 Contact Us")
-    st.write("📍 Serving the Greater US Area")
-    st.write("☎️ 1-800-555-0199")
-    st.markdown("---")
-    
-    st.markdown("### Get a Free Quote")
-    with st.form("quote_form_sidebar"):
-        customer_name = st.text_input("Your Name (Required):", placeholder="John Doe")
-        customer_email = st.text_input("Your Email (Required):", placeholder="example@gmail.com")
-        customer_phone = st.text_input("Your Phone (Optional):", placeholder="(555) 123-4567")
-        customer_note = st.text_area("Interested Design ID & Comments:", placeholder="Example: I like ID: WOOD_FENCE_1...")
-        
-        if st.form_submit_button("Submit Request", use_container_width=True):
-            if customer_name and customer_email:
-                
-                # Gọi đồng thời 2 hệ thống: Slack và Google Sheets
-                gui_thong_bao_slack(customer_name, customer_email, customer_phone, customer_note)
-                
-                if gui_thong_tin_ve_sheets(customer_name, customer_email, customer_phone, customer_note):
-                    st.success(f"✅ Thank you {customer_name}! Our team will contact you shortly.")
+            if submitted:
+                if not name or not phone:
+                    st.error("⚠️ Please fill in your Name and Phone Number.")
                 else:
-                    st.error("⚠️ Connection error. Please try again.")
-            else:
-                st.error("⚠️ Please enter both your Name and Email.")
+                    st.success("✅ Thank you! Your request has been sent successfully.")
 
-# ================= 3. KHU VỰC TRƯNG BÀY (PORTFOLIO) =================
-st.title("🌿 Premier Landscaping & Fencing Solutions")
-st.markdown("Explore our recent projects below. Note the **Design ID** if you find a style you love!")
-st.markdown("---")
-
-st.markdown("### 📸 Our Project Gallery")
-
-thu_muc_hien_tai = os.path.dirname(os.path.abspath(__file__))
-duong_dan_fences = os.path.join(thu_muc_hien_tai, "kho_anh", "fences")
-duong_dan_pavers = os.path.join(thu_muc_hien_tai, "kho_anh", "pavers")
-
-tab_fences, tab_pavers = st.tabs(["🏡 Fencing Projects", "🪨 Pavers & Patios"])
-
-with tab_fences:
-    st.write("**High-quality fencing solutions for privacy and style.**")
-    hien_thi_anh_tu_thu_muc(duong_dan_fences) 
-
-with tab_pavers:
-    st.write("**Custom stone patios, walkways, and hardscaping.**")
-    hien_thi_anh_tu_thu_muc(duong_dan_pavers) 
-
-st.markdown("---")
-
-# ================= 4. KHUNG CHAT AI TƯ VẤN THÔNG MINH =================
-st.markdown("### 🤖 Ask Our AI Consultant")
-
-if "so_luot_chat" not in st.session_state:
-    st.session_state.so_luot_chat = 0
-
-if "bo_nho_chat" not in st.session_state:
-    try:
-        # Lấy API Key từ hệ thống bảo mật st.secrets
-        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-        lenh_cho_ai = """
-        You are a professional Landscaping & Fencing Consultant in the United States.
-        Always reply in ENGLISH. Keep responses short, friendly, and helpful.
-        Ask 1 clarifying question before suggesting solutions.
-        If the customer wants a quote, tell them to fill out the form on the left sidebar.
-        """
-        st.session_state.bo_nho_chat = client.chats.create(
-            model='gemini-3.5-flash',
-            config=types.GenerateContentConfig(system_instruction=lenh_cho_ai)
-        )
-        st.session_state.tin_nhan_hien_thi = [
-            {"role": "assistant", "content": "Hi there! I can help you choose the right materials or answer any landscaping questions. What are you looking to build?"}
-        ]
-    except Exception:
-        st.error("Lỗi khởi tạo AI. Vui lòng kiểm tra API Key.")
-
-if "tin_nhan_hien_thi" in st.session_state:
-    for tin_nhan in st.session_state.tin_nhan_hien_thi:
-        with st.chat_message(tin_nhan["role"]):
-            st.markdown(tin_nhan["content"])
-
-GIỚI_HẠN_CHAT = 5
-
-if st.session_state.so_luot_chat >= GIỚI_HẠN_CHAT:
-    st.warning("⚠️ You've reached the limit of our free AI consultation. Please fill out the form on the left sidebar for further assistance.")
-else:
-    cau_hoi_cua_khach = st.chat_input(f"Type your question ({GIỚI_HẠN_CHAT - st.session_state.so_luot_chat} messages left)...")
-
-    if cau_hoi_cua_khach:
-        with st.chat_message("user"):
-            st.markdown(cau_hoi_cua_khach)
-        st.session_state.tin_nhan_hien_thi.append({"role": "user", "content": cau_hoi_cua_khach})
-        st.session_state.so_luot_chat += 1
-        st.rerun()
-
-if "tin_nhan_hien_thi" in st.session_state and len(st.session_state.tin_nhan_hien_thi) > 0:
-    tin_nhan_cuoi = st.session_state.tin_nhan_hien_thi[-1]
-    
-    if tin_nhan_cuoi["role"] == "user":
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    ket_qua = st.session_state.bo_nho_chat.send_message(tin_nhan_cuoi["content"])
-                    st.markdown(ket_qua.text)
-                    st.session_state.tin_nhan_hien_thi.append({"role": "assistant", "content": ket_qua.text})
-                except errors.ServerError:
-                    st.warning("⚠️ Our consultant is currently assisting other clients. Please wait a few seconds and try again!")
-                    st.session_state.so_luot_chat -= 1 
-                    st.session_state.tin_nhan_hien_thi.pop()
-                except Exception:
-                    st.error("Connection error. Please try again.")
-                    st.session_state.so_luot_chat -= 1
-                    st.session_state.tin_nhan_hien_thi.pop()
+    with col2:
+        st.header("🤖 AI Assistant")
+        st.info("Have questions about permits or materials? Ask our AI!")
+        
+        user_msg = st.chat_input("Type your question here...")
+        if user_msg:
+            st.chat_message("user").write(user_msg)
+            st.chat_message("assistant").write("This is a placeholder for AI. Add your GenAI logic here.")
