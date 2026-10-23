@@ -1,5 +1,5 @@
 """
-Premier Fencing & Pavers - Clean Luxury Edition (Smart FAQ + Anti-Spam + Analytics)
+Premier Fencing & Pavers - Mobile & Desktop Luxury Edition
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ st.set_page_config(
     page_title="Premier Fencing & Pavers",
     page_icon="🌿",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 esc = html.escape
@@ -45,7 +46,6 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 GALLERY_COLUMNS = 3
 GALLERY_PAGE_SIZE = 9
 
-# Bảng giá có từ khóa (keywords) để Chatbot tự động nhận diện
 PRICING = [
     {"key": "wood", "icon": "🪵", "name": "Wood Privacy Fence", "form": "Wood Fencing",
      "low": 15.50, "high": 45.99, "unit": "ft.", "unit_long": "linear feet",
@@ -60,7 +60,6 @@ PRICING = [
 PRICING_BY_KEY = {p["key"]: p for p in PRICING}
 PROJECT_OPTIONS = ["Wood Fencing", "Vinyl Fencing", "Pavers", "Other"]
 
-# Cấu hình Chatbot & Câu hỏi bấm nhanh (Tiết kiệm 100% Token)
 GREETING = (
     f"Hi! I'm the virtual assistant for {BUSINESS['name']}. "
     "Click a topic below for an instant answer, or type your own question!"
@@ -73,7 +72,6 @@ QUICK_QUESTIONS = [
     "🌲 What materials do you use?",
 ]
 
-# Cấu hình bộ lọc chống Spam
 LEAD_FIELDS = ["timestamp", "name", "phone", "email", "project", "message"]
 SPAM_KEYWORDS = (
     "http://", "https://", "www.", "seo", "backlink", "crypto", "bitcoin",
@@ -83,7 +81,7 @@ FAKE_PHONES = {"1234567890", "0123456789", "0000000000", "1111111111", "99999999
 DISPOSABLE_EMAILS = ("tempmail.", "mailinator.", "guerrillamail.", "10minutemail.", "yopmail.")
 
 # =============================================================================
-# 2. GIAO DIỆN (CSS) - WOOD & STONE THEME
+# 2. GIAO DIỆN (CSS) - TỐI ƯU CẢ ĐIỆN THOẠI LẪN MÁY TÍNH
 # =============================================================================
 CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
@@ -98,10 +96,27 @@ CSS = """
 header[data-testid="stHeader"]{background:transparent !important;}
 #MainMenu,footer{visibility:hidden;}
 
+/* Làm nổi bật nút mở Sidebar trên điện thoại */
+[data-testid="collapsedControl"], [data-testid="stSidebarCollapsedControl"] button{
+  background-color:#2C1E16 !important;
+  border:1px solid var(--gold) !important;
+  color:var(--gold) !important;
+  border-radius:8px !important;
+}
+[data-testid="collapsedControl"] svg, [data-testid="stSidebarCollapsedControl"] svg{
+  fill:var(--gold) !important;
+  color:var(--gold) !important;
+}
+
 [data-testid="stMainBlockContainer"],[data-testid="stAppViewBlockContainer"],[data-testid="block-container"]{
-  max-width:1240px !important; margin:48px auto 28px !important; padding:40px 50px !important;
+  max-width:1240px !important; margin:36px auto 28px !important; padding:32px 44px !important;
   background:linear-gradient(145deg,var(--stone-a) 0%,var(--stone-b) 100%) !important;
   border:2px solid var(--wood) !important; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.6) !important;
+}
+@media (max-width:768px){
+  [data-testid="stMainBlockContainer"],[data-testid="stAppViewBlockContainer"],[data-testid="block-container"]{
+    padding:18px 14px !important; margin:10px auto !important; border-radius:12px;
+  }
 }
 
 [data-testid="stMarkdownContainer"] p,[data-testid="stMarkdownContainer"] li{
@@ -109,24 +124,27 @@ header[data-testid="stHeader"]{background:transparent !important;}
 }
 [data-testid="stMarkdownContainer"] strong{font-weight:600 !important;}
 [data-testid="stWidgetLabel"] p{color:#fff !important;font-weight:500 !important;font-size:.95rem !important;}
-a,a:visited{color:var(--gold) !important;}
+a,a:visited{color:var(--gold) !important;text-decoration:none;}
 
 h1,h2,h3,h1 *,h2 *,h3 *{font-family:'Playfair Display',Georgia,serif !important;color:var(--gold) !important;letter-spacing:.5px !important;}
 hr{border-color:var(--wood) !important;}
 
+/* Sidebar */
 [data-testid="stSidebar"]{background:#2C1E16 !important;border-right:1px solid #4A3525 !important;}
 [data-testid="stSidebar"] *{color:#E8EDE9 !important;}
 [data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,[data-testid="stSidebar"] h3,
 [data-testid="stSidebar"] a{color:var(--gold) !important;}
 
+/* Khung ảnh */
 [data-testid="stImage"] img{border-radius:10px !important;border:2px solid var(--wood) !important;box-shadow:0 10px 30px rgba(0,0,0,.5) !important;transition:all .35s ease !important;}
 [data-testid="stImage"] img:hover{transform:scale(1.02);box-shadow:0 15px 40px rgba(0,0,0,.7) !important;border-color:var(--gold) !important;}
 [data-testid="stSidebar"] [data-testid="stImage"] img{border:none !important;box-shadow:none !important;}
 [data-testid="stSidebar"] [data-testid="stImage"] img:hover{transform:none;}
 
+/* Nút bấm chính */
 div.stButton button,[data-testid="stFormSubmitButton"] button{
   background:linear-gradient(90deg,var(--oak) 0%,var(--oak-dark) 100%) !important;color:#fff !important;border:none !important;
-  border-radius:6px !important;padding:.6rem 1.8rem !important;text-transform:uppercase !important;letter-spacing:1px !important;
+  border-radius:6px !important;padding:.6rem 1.4rem !important;text-transform:uppercase !important;letter-spacing:1px !important;
   box-shadow:0 4px 15px rgba(139,90,43,.3) !important;transition:all .25s ease !important;
 }
 div.stButton button:hover,[data-testid="stFormSubmitButton"] button:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(139,90,43,.5) !important;}
@@ -137,8 +155,20 @@ div[class*="st-key-quick_"] div.stButton button{background:var(--glass) !importa
 div[class*="st-key-quick_"] div.stButton button:hover{border-color:var(--gold) !important;box-shadow:none !important;transform:none;}
 div[class*="st-key-quick_"] div.stButton button p{font-weight:400 !important;font-size:.9rem !important;text-align:left;}
 
+/* Thanh liên hệ nhanh trên đỉnh trang (Rất tiện cho điện thoại) */
+.top-bar{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+  background:rgba(44, 30, 22, 0.85); border:1px solid var(--wood); border-radius:10px;
+  padding:10px 16px; margin-bottom:14px; font-size:0.9rem;
+}
+.top-bar .brand{font-family:'Playfair Display',serif; color:var(--gold); font-weight:700; font-size:1.1rem;}
+.top-bar .call-btn{
+  background:rgba(230, 194, 135, 0.15); border:1px solid var(--gold); color:var(--gold) !important;
+  padding:4px 12px; border-radius:6px; font-weight:600; font-size:0.85rem;
+}
+
 .table-wrap{overflow-x:auto;border:1px solid var(--wood);border-radius:12px;background:var(--glass);}
-.price-table{width:100%;min-width:560px;margin:0 !important;border:none !important;border-collapse:collapse;}
+.price-table{width:100%;min-width:520px;margin:0 !important;border:none !important;border-collapse:collapse;}
 .price-table th,.price-table td{border:none !important;text-align:left;padding:.85rem 1rem !important;}
 .price-table th{background:rgba(139,90,43,.22) !important;color:var(--gold) !important;font-family:'Playfair Display',serif;font-size:1.05rem;border-bottom:1px solid var(--wood) !important;}
 .price-table td{background:transparent !important;color:#fff !important;font-weight:300;border-bottom:1px solid #3E2723 !important;}
@@ -190,7 +220,6 @@ def go_to(page: str, project: str | None = None) -> None:
     st.session_state["page"] = page
 
 def track_visitor() -> int:
-    """Đếm chính xác mỗi khách truy cập 1 lần duy nhất trong suốt phiên làm việc."""
     try:
         count = int(VISITOR_FILE.read_text(encoding="utf-8").strip()) if VISITOR_FILE.is_file() else 120
     except ValueError:
@@ -217,7 +246,6 @@ def _csv_safe(value: str) -> str:
     return "'" + value if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
 
 def save_lead_to_csv(lead: dict) -> bool:
-    """Lưu thông tin khách hàng thật vào file leads.csv."""
     try:
         with _lead_lock():
             is_new = not LEADS_FILE.exists()
@@ -231,12 +259,6 @@ def save_lead_to_csv(lead: dict) -> bool:
         return False
 
 def check_lead_security(name: str, phone: str, email: str, message: str, honeypot: str, elapsed_sec: float) -> tuple[str, str]:
-    """
-    Phễu lọc 4 lớp:
-    - 'valid': Khách hàng thật 100%
-    - 'error': Khách thật nhưng nhập thiếu/sai định dạng SĐT Mỹ
-    - 'spam': Bot hoặc tin nhắn quảng cáo rác (chặn ngầm)
-    """
     if honeypot.strip() != "" or elapsed_sec < 3.0:
         return "spam", ""
 
@@ -433,7 +455,6 @@ def page_quote() -> None:
             project = st.selectbox("🏗️ Project Interest", PROJECT_OPTIONS)
             message = st.text_area("💬 Project Details", placeholder="Tell us about your yard, approximate footage, or timeline...", height=130)
 
-            # BẪY HONEYPOT ẨN
             st.markdown('<div style="display:none;">', unsafe_allow_html=True)
             honeypot = st.text_input("Leave this field blank", key="hp_company_fax")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -471,7 +492,7 @@ def page_quote() -> None:
         chat_panel()
 
 # =============================================================================
-# 7. ĐIỀU HƯỚNG & CHẠY ỨNG DỤNG
+# 7. ĐIỀU HƯỚNG ĐỒNG BỘ (ĐIỆN THOẠI + MÁY TÍNH)
 # =============================================================================
 PAGES = {
     "about": ("📜 About & Pricing", page_about),
@@ -479,7 +500,37 @@ PAGES = {
     "quote": ("✉️ Free Estimate & AI", page_quote),
 }
 
-def render_sidebar() -> None:
+def _sync_nav(source_key: str) -> None:
+    """Đồng bộ hóa thanh menu trên màn hình chính và thanh menu bên trái."""
+    st.session_state["page"] = st.session_state[source_key]
+
+def render_top_mobile_nav(total_visits: int) -> None:
+    """Thanh điều hướng ngang luôn hiển thị rõ ràng trên điện thoại."""
+    digits = re.sub(r"\D", "", BUSINESS["phone"])
+    render_html(f"""
+        <div class="top-bar">
+            <span class="brand">⚜️ {esc(BUSINESS['name'])}</span>
+            <span>
+                <a class="call-btn" href="tel:{digits}">📞 Call {esc(BUSINESS['phone'])}</a>
+                &nbsp; <small style="color:#A0A0A0;">👁️ {total_visits:,}</small>
+            </span>
+        </div>
+    """)
+    page_keys = list(PAGES)
+    current_idx = page_keys.index(st.session_state["page"])
+    nav_cols = st.columns(len(page_keys))
+    for idx, k in enumerate(page_keys):
+        with nav_cols[idx]:
+            st.button(
+                PAGES[k][0],
+                key=f"top_nav_{k}",
+                on_click=go_to,
+                args=(k,),
+                use_container_width=True,
+            )
+    st.divider()
+
+def render_sidebar(total_visits: int) -> None:
     with st.sidebar:
         logo = BASE_DIR / "logo2.png"
         if logo.is_file():
@@ -487,7 +538,18 @@ def render_sidebar() -> None:
             st.markdown("<br>", unsafe_allow_html=True)
             
         st.title("⚜️ Navigation")
-        st.radio("Menu", list(PAGES), format_func=lambda k: PAGES[k][0], key="page", label_visibility="collapsed")
+        page_keys = list(PAGES)
+        current_idx = page_keys.index(st.session_state["page"])
+        st.radio(
+            "Menu",
+            page_keys,
+            index=current_idx,
+            format_func=lambda k: PAGES[k][0],
+            key="nav_sidebar",
+            on_change=_sync_nav,
+            args=("nav_sidebar",),
+            label_visibility="collapsed",
+        )
         st.divider()
         render_html(f"""
             <div style="line-height: 2;">
@@ -496,7 +558,6 @@ def render_sidebar() -> None:
               📍 {esc(BUSINESS['city'])}
             </div>
         """)
-        total_visits = track_visitor()
         st.caption(f"👁️ Total Visitors: **{total_visits:,}**")
 
 def render_footer() -> None:
@@ -526,8 +587,11 @@ def render_footer() -> None:
 def main() -> None:
     st.markdown(f"<style>{CSS}</style>", unsafe_allow_html=True)
     if st.session_state.get("page") not in PAGES:
-        st.session_state["page"] = "about" 
-    render_sidebar()
+        st.session_state["page"] = "about"
+    
+    total_visits = track_visitor()
+    render_sidebar(total_visits)
+    render_top_mobile_nav(total_visits)
     PAGES[st.session_state["page"]][1]()
     render_footer()
 
